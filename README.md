@@ -16,36 +16,33 @@
 
 ## Set Up
 
-* __Installation__ :
+* Requires
+    * [Coreutils](https://www.gnu.org/software/coreutils)
+    * [Apt-get](https://salsa.debian.org/apt-team/apt)
+
+* Installation
 
     ```bash
-    git clone https://gitlab.com/zakariagatter/apt-undo
-    cd apt-undo
+    git clone https://github.com/zakariagatter/apt-undo ~/apt-undo
     mkdir -p ~/.local/bin
-    cp apt-undo ~/.local/bin
+    cp ~/apt-undo/bin/apt-undo ~/.local/bin
     chmod +x ~/.local/bin/apt-undo
     ```
 
 ## Help
 ```
-APT-UNDO : undo the last apt-get action
-    Write by ZAKARIA GATTER (https://gitlab.com/zakariagatter)
+Apt-undo Undo Apt-get action
+apt-undo OPTIONS ACTIONS PKG ...
 
-    apt-undo [OPTION] [ACTION] PKGS ...
+OPTIONS
+ -u | --undo <pkg>  : Undo action with pkg in it
+ -c | --count <num> : Undo last Number of actions
+ -h | --help        : SHow help dialog
 
-    OPTIONS :
-       -w | --with [ACTION] PKGS : Display all the packages been with PKGS in the ACTION
-       -u | --undo [ACTION] PKGS : Undo the [ACTION] that have PKGS in it
-       -c | --count [ACTION] [N] : Undo the last [ACTION] for [Number] of Last actions
-       -h | --help               : This Help Dialog
-
-    ACTIONS :
-        Install : The Install action like 'sudo apt install'  or any similar command
-        Remove  : The Remove action  like 'sudo apt remove'   or any similar command
-        Purge   : The Purge action   like 'sudo apt purge'    or any similar command
-
-    NOTE :
-        if you leave [N] Empty, apt-undo take '1' as the default value
-        Apt-undo Process One package or Action at a time is much easier and more manageable
+ACTIONS
+ install : any use of apt-get install
+ remove  : any use of apt-get remove
+ purge   : any use of apt-get purge
 ```
-[Apt-undo]:https://gitlab.com/zakariagatter/apt-undo
+
+[Apt-undo]:https://github.com/zakariagatter/apt-undo

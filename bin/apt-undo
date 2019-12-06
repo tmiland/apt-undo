@@ -1,0 +1,165 @@
+#!/bin/bash
+
+#-------#
+# DEBUG #
+#-------#
+#set -xv
+
+#-------------#
+# SCRIPT NAME #
+#-------------#{{{
+_name_=${0##*/}
+#}}}
+
+#---------------------#
+# SYSTEM ARCHITECTURE #
+#---------------------#{{{
+_ARCH_=$(dpkg --print-architecture)
+#}}}
+
+#----------#
+# LOG FILE #
+#----------#{{{
+_APT_LOG_="/var/log/apt/history.log"
+#}}}
+
+#--------------#
+# ACTIONS LIST #
+#--------------#{{{
+declare -A _UNDO_ACTION_=(["install"]="${_APT_UNDO_INSTALL_:-purge --autoremove}" ["remove"]="${_APT_UNDO_REMOVE_:-install}" ["Purge"]="${_APT_UNDO_PURGE_:-install}")
+#}}}
+
+#-----------#
+# ERROR MSG #
+#-----------#{{{
+_er_(){ echo -e "${_name_^}: $@" >&2 ; exit 2; }
+#}}}
+
+#---------------------------#
+# CHECK FOR USER PERMISSION #
+#---------------------------#{{{
+_sudo_(){
+    [ "$UID" -ne "0" ] && _er_ "Permission Denied, require superuser privilege"
+}
+#}}}
+
+#------------------#
+# CHECK FOR NUMBER #
+#------------------#{{{
+_number_check_(){
+_count_=${1:-1}
+(( _count_ = _count_ )) 2> /dev/null || _er_ "Invalid number for --count "
+}
+#}}}
+
+#------------------#
+# CHECK FOR ACTION #
+#------------------#{{{
+_action_(){
+case "${1^^}" in
+    INSTALL|REMOVE|PURGE )
+        _ACTION_=${_UNDO_ACTION_[${1,,}]}
+        ;;
+    * )
+        _er_ "$1 Unvalide Action"
+        ;;
+esac
+}
+#}}}
+
+#-------------#
+# UNDO COUNT  #
+#-------------#{{{
+_undo_count_(){
+local line pkg _PKGS_
+declare -a _list_
+local _num_="0"
+
+# create list of ACTION line
+while read -ra line ;do
+	[ "${line[0]}" = "${_action_^}:" ] && {
+		_list_[$_num_]="${line[@]:1}"
+		((_num_++))
+	}
+done < $_APT_LOG_
+
+# get the last number of line
+((_num_ = _num_ - _count_))
+
+for i in ${_list_[@]:$_num_}; do
+	[[ "$i" =~ :[a-z] ]] && _PKGS_+="$i "
+done
+
+eval "apt ${_UNDO_ACTION_[$_action_]} $_PKGS_"
+}
+#}}}
+
+#--------------------------#
+# UNDO THE ACTION WITH PKG #
+#--------------------------#{{{
+_undo_undo_(){
+local _pkg_=$1
+local _resulte_ _PKGS_
+
+while read -ra line ; do
+	[ "${line[0]}" = "${_action_^}:" ] && {
+		[[ "${line[@]}" =~ ${_pkg_} ]] && _resulte_="${line[@]:1}"
+	}
+done < $_APT_LOG_
+
+[ "$_resulte_" ] || _er_ "No Result Found for $_pkg_"
+
+for i in $_resulte_ ; { [[ "$i" =~ :[a-z] ]] && _PKGS_+="${i} " ; }
+
+eval "apt ${_UNDO_ACTION_[$_action_]} $_PKGS_"
+}
+#}}}
+
+#-------------#
+# HELP DIALOG #
+#-------------#{{{
+_help_(){
+\cat <<- HELP
+${_name_^} Undo Apt-get action
+${_name_} OPTIONS ACTIONS PKG ...
+
+OPTIONS
+ -u | --undo <pkg>  : Undo action with pkg in it
+ -c | --count <num> : Undo last Number of actions
+ -h | --help        : SHow help dialog
+
+ACTIONS
+ install : any use of apt-get install
+ remove  : any use of apt-get remove
+ purge   : any use of apt-get purge
+HELP
+}
+#}}}
+
+#---------------#
+# MAIN FUNCTION #
+#---------------#{{{
+_main_(){
+case "$1" in
+    -c|--count )
+        _sudo_
+        _action_ "$2"
+        _number_check_ "$3"
+        _undo_count_
+        ;;
+    -u|--undo )
+        _sudo_
+        _action_ "$2"
+        _undo_undo_ "$3"
+        ;;
+    -h|--help )
+        _help_
+        ;;
+esac
+}
+#}}}
+
+#------------------------#
+# EXEC THE MAIN FUNCTION #
+#------------------------#
+_main_ "$@"
